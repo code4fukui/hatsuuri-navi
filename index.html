@@ -3,7 +3,63 @@
 </head><body>
 <h1>初売りナビ福井</h1>
 <script type="module" src="https://js.sabae.cc/csv-map.js"></script>
-<csv-map src="https://misakiotb.github.io/shop-schedule-fukui-data/shop-schedule-fukui_2024-25.csv"></csv-map>
+<csv-map id=csvmap src="https://misakiotb.github.io/shop-schedule-fukui-data/shop-schedule-fukui_2024-25.csv"></csv-map>
+<div id=divsel></div>
 <hr>
 DATA: <a href=https://github.com/misakiotb/shop-schedule-fukui-data/>misakiotb/shop-schedule-fukui-data: 福井のお店の営業時間データ</a><br>
+
+<script type="module">
+import { CSV } from "https://js.sabae.cc/CSV.js";
+import { DateTime, Day } from "https://js.sabae.cc/DateTime.js";
+import { ArrayUtil } from "https://js.sabae.cc/ArrayUtil.js";
+import { cr } from "https://js.sabae.cc/cr.js";
+
+const url = "https://misakiotb.github.io/shop-schedule-fukui-data/shop-schedule-fukui_2024-25.csv";
+const data = await CSV.fetchJSON(url);
+
+const days = ArrayUtil.toUnique(Object.keys(data[0]).filter(i => i.startsWith("20")).map(i => i.substring(0, i.indexOf(" "))));
+console.log(days);
+
+const chks = {};
+for (const day of days) {
+  const label = cr("label", divsel);
+  const inp = cr("input", label);
+  inp.type = "checkbox";
+  inp.value = day;
+  inp.checked = true;
+  cr("span", label).textContent = day;
+  
+  chks[day] = inp;
+  inp.onchange = () => {
+    const data2 = data.filter(i => {
+      let flg = false;
+      for (const day of days) {
+        if (chks[day].checked) {
+          const open = i[day + " OPEN"];
+          if (open != "休業" && open != "店休日" && open != "店休" && open != "定休日") {
+            flg = true;
+          }
+        }
+      }
+      return flg;
+    }).map(i => {
+      const o = {};
+      for (const name in i) {
+        if (!name.startsWith("20")) {
+          o[name] = i[name];
+          continue;
+        }
+        const day0 = name.substring(0, name.indexOf(" "));
+        if (chks[day0].checked) {
+          o[name] = i[name];
+        }
+      }
+      return o;
+    });
+    csvmap.value = data2;
+  };
+}
+
+</script>
+
 </body></html>
